@@ -1,18 +1,4 @@
-const { createUpiPay, PostgresStore } = require('../../src');
-
-const upi = createUpiPay({
-  vpa: process.env.UPI_ID,
-  payeeName: process.env.UPI_NAME,
-
-  gmail: {
-    user: process.env.GMAIL_ADDRESS,
-    appPassword: process.env.GMAIL_APP_PASSWORD
-  },
-
-  store: new PostgresStore({
-    connectionString: process.env.DATABASE_URL
-  })
-});
+const upi = require('../../lib/upi');
 
 module.exports = upi.handler({
   basePath: '/api/upi',
