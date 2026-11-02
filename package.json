@@ -48,7 +48,8 @@
   "dependencies": {
     "imapflow": "^2.10.0",
     "mailparser": "^3.14.1",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "pg": "^8.16.0"
   },
   "peerDependencies": {
     "pg": ">=8"
