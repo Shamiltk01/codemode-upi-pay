@@ -1,4 +1,4 @@
-const upi = require('../../lib/upi');
+const upi = require('../lib/upi');
 
 module.exports = upi.handler({
   basePath: '/api/upi',
