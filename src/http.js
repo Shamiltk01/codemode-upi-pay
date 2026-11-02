@@ -130,7 +130,7 @@ function createHandler(upi, o) {
       }
       if (p === '/sync' && req.method === 'POST') {
         if (!hasKey(req)) return reply(401, { error: 'Needs the API key.' });
-        const r = await upi.sync({ force: true });
+        const r = await upi.sync({ force: true, recheck: url.searchParams.get('recheck') === '1' });
         return reply(200, { ran: r.ran, alerts: r.alerts, credited: r.credited.map((x) => x.id), error: r.error });
       }
       if (p === '/status' && req.method === 'GET') return reply(200, await upi.status());

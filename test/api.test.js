@@ -6,7 +6,7 @@ const quiet = { info() {}, warn() {}, error() {} };
 // A fake Gmail: whatever alerts are queued arrive on the next sync.
 function fakeInbox() {
   const q = [];
-  const read = async (o, state) => { read.calls.push({ o, state }); return { alerts: q.splice(0), lastUid: (state.lastUid || 0) + 1, uidValidity: 1 }; };
+  const read = async (o, state) => { read.calls.push({ o, state }); return { alerts: q.splice(0), lastUid: ((state && state.lastUid) || 0) + 1, uidValidity: 1 }; };
   read.calls = [];
   read.queue = (a) => q.push(Object.assign({ bank: 'HDFC Bank', payer: 'x@okaxis', ref: '', receivedAt: new Date().toISOString() }, a));
   return read;
@@ -69,6 +69,14 @@ test('sync reads the inbox, settles the payment once and fires paid / onPaid / t
   assert.equal(events.length, 1, 'the same alert never pays twice');
   assert.equal(inbox.calls[1].state.lastUid, 1, 'the next read continues where the last one stopped');
   assert.equal(inbox.calls[0].o.refRe.test(p.ref), true, 'the inbox reader looks for this store’s reference format');
+});
+
+test('sync recheck scans from the recent-message lookback instead of the saved UID', async () => {
+  const { upi, inbox } = make();
+  await upi.sync();
+  await upi.sync({ force: true, recheck: true });
+  assert.deepEqual(inbox.calls[0].state, { lastUid: 0, uidValidity: 0 });
+  assert.equal(inbox.calls[1].state, null);
 });
 
 test('old webhook signatures are refused', () => {

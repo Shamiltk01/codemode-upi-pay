@@ -61,14 +61,19 @@ function money(s) {
 function parseAlert(subject, body, opts) {
   opts = opts || {};
   const text = (String(subject || '') + '\n' + String(body || '')).replace(/[ \t ]+/g, ' ');
-  const credit = text.search(/\b(credited|received|deposited)\b/i);
+  const credit = text.search(/\b(credited|received|deposited|credit)\b/i);
   const debit = text.search(/\b(debited|withdrawn|spent|sent to|paid to|transferred to)\b/i);
   if (credit < 0 || (debit >= 0 && debit < credit)) return null;
 
   let amount = 0;
-  for (const re of AMOUNT_PATTERNS) {
-    const m = text.match(re);
-    if (m && (amount = money(m[1]))) break;
+  const tableHeader = /\btran\s+type\s+tran\s+id\s+cheque\s+details\s+withdrawals\s+deposits\b/i.test(text);
+  const tableCredit = tableHeader && text.match(/\bcredit\s+[a-z0-9]+\s+([0-9][0-9,]*\.[0-9]{1,2})\s+[0-9][0-9,]*\.[0-9]{1,2}\s+cr\b/i);
+  if (tableCredit) amount = money(tableCredit[1]);
+  if (!amount) {
+    for (const re of AMOUNT_PATTERNS) {
+      const m = text.match(re);
+      if (m && (amount = money(m[1]))) break;
+    }
   }
   if (!amount) {
     const m = text.match(NEAR_CREDIT);
@@ -180,7 +185,8 @@ async function toAlert(raw, receivedAt, opts) {
   if (!sender.ok) return null;
   const { simpleParser } = require('mailparser');
   const mail = await simpleParser(raw, { skipImageLinks: true, skipTextToHtml: true, skipTextLinks: true });
-  const info = parseAlert(mail.subject, mail.text || htmlToText(mail.html), { refRe: opts.refRe, ownVpa: opts.ownVpa });
+  const body = mail.html ? htmlToText(mail.html) : mail.text;
+  const info = parseAlert(mail.subject, body, { refRe: opts.refRe, ownVpa: opts.ownVpa });
   if (!info) return null;
   return {
     utr: info.utr, amount: info.amount, bank: bankName(sender.domain), payer: info.payer, ref: info.ref,

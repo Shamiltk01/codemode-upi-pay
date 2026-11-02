@@ -162,10 +162,11 @@ function createUpiPay(opts) {
         if (!state) return out;
         out.ran = true;
         try {
+          const inboxState = o && o.recheck ? null : state;
           const r = await (opts._readInbox || inbox.readInbox)({
             user: gmail.user, appPassword: gmail.appPassword, alertSenders: opts.alertSenders, authServer: opts.authServer,
             refRe, ownVpa: opts.vpa, timeoutMs: opts.inboxTimeoutMs
-          }, state);
+          }, inboxState);
           out.alerts = r.alerts.length;
           out.credited = await store.ingestAlerts(r.alerts);
           await store.finishSync({ lastUid: r.lastUid, uidValidity: r.uidValidity, error: null });

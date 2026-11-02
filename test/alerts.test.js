@@ -65,6 +65,14 @@ for (const [bank, subject, body, want] of SAMPLES) {
   });
 }
 
+test('parses a Federal Bank table-style UPI credit alert', () => {
+  const body = 'Date Value Date Time Particulars Tran Type Tran ID Cheque Details Withdrawals Deposits Effective Available Balance Dr/Cr ' +
+    '02-11-2026 02-11-2026 13:24:34 UPI IN/123236789012/78877sh@ptyes/PAYUKRX/0000 Credit S32033204 1.43 49413.05 Cr';
+  assert.deepEqual(alerts.parseAlert('Transaction alert', body, { refRe }), {
+    amount: 1.43, utr: '123236789012', ref: '', payer: '78877sh@ptyes'
+  });
+});
+
 test('ignores debits, OTPs, statements and balance-only lines', () => {
   assert.equal(alerts.parseAlert('Debit alert', 'Rs.100.37 has been debited from account **1234 to VPA shop@ybl on 04-10-26. UPI Ref 427712345690. If not you, call us.'), null);
   assert.equal(alerts.parseAlert('Your account was debited', 'Your a/c XX12 is debited for Rs 100.37 and credited to payee@upi. UPI Ref 427712345691'), null);
@@ -137,6 +145,17 @@ test('toAlert: a full HTML bank email becomes an alert row; a forged one doesnâ€
   const a = await alerts.toAlert(email({ auth: GMAIL_OK('hdfcbank.net'), from: 'HDFC Bank <alerts@hdfcbank.net>', subject: 'You have received money', html }), at, cfg);
   assert.deepEqual(a, { utr: '427712345678', amount: 100.37, bank: 'HDFC Bank', payer: 'john@okaxis', ref: '', receivedAt: at.toISOString() });
   assert.equal(await alerts.toAlert(email({ auth: GMAIL_FAIL('hdfcbank.net'), from: 'alerts@hdfcbank.net', subject: 'You have received money', html }), at, cfg), null);
+});
+
+test('toAlert: parses Federal Bank HTML transaction tables', async () => {
+  const html = '<html><body><table><tr><th>Date</th><th>Value Date</th><th>Time</th><th>Particulars</th><th>Tran Type</th>' +
+    '<th>Tran ID</th><th>Cheque Details</th><th>Withdrawals</th><th>Deposits</th><th>Effective Available Balance</th><th>Dr/Cr</th></tr>' +
+    '<tr><td>02-11-2026</td><td>02-11-2026</td><td>13:24:34</td><td>UPI IN/123456789012/7687h@ptyes/PAYUKRX/0000</td>' +
+    '<td>Credit</td><td>S32033204</td><td></td><td></td><td>1.43</td><td>49413.05</td><td>Cr</td></tr></table></body></html>';
+  const at = new Date('2026-11-02T07:54:34Z');
+  const a = await alerts.toAlert(email({ auth: GMAIL_OK('federalbank.co.in'), from: 'alerts@federalbank.co.in', subject: 'Transaction alert', html }), at,
+    { alertSenders: '', ownVpa: 'store@okhdfcbank', refRe });
+  assert.deepEqual(a, { utr: '123456789012', amount: 1.43, bank: 'Federal Bank', payer: '7687h@ptyes', ref: '', receivedAt: at.toISOString() });
 });
 
 // ---------- the Gmail inbox ----------

@@ -87,6 +87,22 @@ test('admin routes need the key; status and the widget are public; other paths f
   await s.close();
 });
 
+test('admin sync can recheck recent Gmail messages', async () => {
+  const states = [];
+  const s = await serve({}, {
+    gmail: { user: 'alerts@gmail.com', appPassword: 'test' },
+    _readInbox: async (opts, state) => {
+      states.push(state);
+      return { alerts: [], lastUid: 15, uidValidity: 1 };
+    }
+  });
+  await s.call('POST', '/upi/sync', {}, KEY);
+  await s.call('POST', '/upi/sync?recheck=1', {}, KEY);
+  assert.deepEqual(states[0], { lastUid: 0, uidValidity: 0 });
+  assert.equal(states[1], null);
+  await s.close();
+});
+
 test('CORS only for the allowed sites', async () => {
   const s = await serve({ cors: 'https://shop.test' });
   let r = await s.call('OPTIONS', '/upi/payments', null, { Origin: 'https://shop.test' });
